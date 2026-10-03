@@ -1,0 +1,44 @@
+name: 新内容建议
+description: 提交新的功能、优化或内容建议
+title: "[Feature] "
+labels:
+  - "新内容"
+
+body:
+  - type: input
+    id: title
+    attributes:
+      label: 标题
+      description: 新内容的名称
+      placeholder: 例如：添加XXX功能
+    validations:
+      required: true
+
+
+  - type: textarea
+    id: content
+    attributes:
+      label: 内容
+      description: 请描述你希望添加的内容
+      placeholder: |
+        想添加什么？
+        这个功能有什么用途？
+    validations:
+      required: true
+
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: 如何实现？（非必要）
+      description: 如果你有实现方案，可以填写
+      placeholder: |
+        实现思路：
+        需要修改：
+        可能影响：
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息
+      description: 其他相关信息
