@@ -537,5 +537,3 @@ Thanks to:
 
 Create images.
 Bring them into Minecraft.
-
-这样更符合国际开源项目习惯。
