@@ -9,6 +9,8 @@
 
 **A Minecraft Java Edition particle image datapack generator.**
 
+This program was developed with assistance from Copilot-GPT3.5!
+
 Convert PNG, GIF, and APNG images into Minecraft Java Edition Datapack ZIP files.
 
 The application is built as a Windows desktop application using **PySide6**.  
