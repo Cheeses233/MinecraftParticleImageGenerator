@@ -1,36 +1,52 @@
-name: Close reviewed issues
+name: Close issues with triage labels
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [labeled]
 
 permissions:
   issues: write
 
 jobs:
-  close-reviewed-issue:
+  close-labeled-issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Close issue when all review labels are present
+      - name: Close issue and leave a label-specific comment
         uses: actions/github-script@v7
         with:
           script: |
-            const requiredLabels = ["✔已完成", "❌不予处理", "❌无法修复"];
+            const labelComments = {
+              "✔已完成": [
+                "此 Issue 已标记为「✔已完成」，相关工作已完成，因此现将其关闭。",
+                "",
+                "感谢你提交问题并帮助改进项目！",
+              ].join("\n"),
+              "❌不予处理": [
+                "此 Issue 已标记为「❌不予处理」，根据项目维护决定不继续处理，因此现将其关闭。",
+                "",
+                "感谢你的反馈；如果后续情况或项目范围发生变化，欢迎补充信息后重新讨论。",
+              ].join("\n"),
+              "❌无法修复": [
+                "此 Issue 已标记为「❌无法修复」。目前受现有技术条件或项目限制，无法提供可行的修复方案，因此现将其关闭。",
+                "",
+                "如果之后发现新的复现步骤、环境信息或解决线索，欢迎补充并重新开启讨论。",
+              ].join("\n"),
+            };
+
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
+            const addedLabel = context.payload.label?.name;
+            if (!Object.hasOwn(labelComments, addedLabel)) {
+              core.info("The added label is not configured for automatic closure.");
+              return;
+            }
+
             const { data: issue } = await github.rest.issues.get({
               owner,
               repo,
               issue_number,
             });
-
-            const issueLabels = new Set(issue.labels.map((label) => label.name));
-            if (!requiredLabels.every((label) => issueLabels.has(label))) {
-              core.info("The issue does not have all required labels; leaving it unchanged.");
-              return;
-            }
-
-            const marker = "<!-- auto-close: reviewed-labels -->";
+            const marker = `<!-- auto-close: label=${addedLabel} -->`;
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner,
               repo,
@@ -55,13 +71,6 @@ jobs:
                 owner,
                 repo,
                 issue_number,
-                body: [
-                  "此 Issue 已同时标记为「✔已完成」「❌不予处理」和「❌无法修复」，",
-                  "因此根据项目流程自动关闭。",
-                  "",
-                  "感谢反馈与协助！如果之后有新的信息或可复现步骤，欢迎重新开启此 Issue，或提交新的 Issue。",
-                  "",
-                  marker,
-                ].join("\n"),
+                body: `${labelComments[addedLabel]}\n\n${marker}`,
               });
             }
