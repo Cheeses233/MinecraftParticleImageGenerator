@@ -1,106 +1,67 @@
-name: 自动关闭Issue
+name: Close reviewed issues
 
 on:
   issues:
-    types:
-      - labeled
+    types: [opened, labeled]
 
 permissions:
   issues: write
 
-
 jobs:
-  close_issue:
+  close-reviewed-issue:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 自动处理Issue
+      - name: Close issue when all review labels are present
         uses: actions/github-script@v7
         with:
           script: |
+            const requiredLabels = ["✔已完成", "❌不予处理", "❌无法修复"];
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: issue } = await github.rest.issues.get({
+              owner,
+              repo,
+              issue_number,
+            });
 
-            const label = context.payload.label.name;
-
-            let comment = null;
-
-
-            if (label === "已完成") {
-
-              comment = `
-  ## ✅ Issue 已完成
-
-感谢你的反馈！
-
-该问题已经完成处理，我们会在后续版本中发布相关修复或更新。
-
-感谢你对项目的支持！
-`;
-
-            }
-
-
-            if (label === "不予处理") {
-
-              comment = `
-## ❌ Issue 不予处理
-
-感谢你的反馈。
-
-经过评估，该内容暂时不符合当前项目规划，因此不会进行处理。
-
-感谢理解！
-`;
-
-            }
-
-
-            if (label === "无法修复") {
-
-              comment = `
-## ❌ Issue 无法修复
-
-感谢你的反馈。
-
-由于技术限制、依赖限制或实现成本等原因，该问题目前无法修复。
-
-如果未来条件允许，我们会重新评估。
-
-感谢支持！
-`;
-
-            }
-
-
-            if (!comment) {
+            const issueLabels = new Set(issue.labels.map((label) => label.name));
+            if (!requiredLabels.every((label) => issueLabels.has(label))) {
+              core.info("The issue does not have all required labels; leaving it unchanged.");
               return;
             }
 
-
-            // 添加评论
-            await github.rest.issues.createComment({
-
-              owner: context.repo.owner,
-
-              repo: context.repo.repo,
-
-              issue_number: context.issue.number,
-
-              body: comment
-
+            const marker = "<!-- auto-close: reviewed-labels -->";
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
             });
+            const alreadyCommented = comments.some((comment) =>
+              comment.body?.includes(marker)
+            );
 
+            if (issue.state !== "closed") {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number,
+                state: "closed",
+              });
+            }
 
-
-            // 关闭 Issue
-
-            await github.rest.issues.update({
-
-              owner: context.repo.owner,
-
-              repo: context.repo.repo,
-
-              issue_number: context.issue.number,
-
-              state: "closed"
-
-            });
+            if (!alreadyCommented) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: [
+                  "此 Issue 已同时标记为「✔已完成」「❌不予处理」和「❌无法修复」，",
+                  "因此根据项目流程自动关闭。",
+                  "",
+                  "感谢反馈与协助！如果之后有新的信息或可复现步骤，欢迎重新开启此 Issue，或提交新的 Issue。",
+                  "",
+                  marker,
+                ].join("\n"),
+              });
+            }
