@@ -1,88 +1,540 @@
-# Minecraft 粒子图片函数包生成器
+```md
+[English](README.md) | [简体中文](README_CN.md)
 
-本程序由Copilot-GPT3.5协助开发，如有问题请提交Issue！
-Windows 桌面程序：将 PNG、GIF 和 APNG 转成 Minecraft Java Edition Datapack ZIP。界面使用 PySide6；动画解析、粒子模拟、性能预设、风险预测、版本命令和 ZIP 构建分别位于独立模块。
+# Minecraft Particle Image Generator
 
-## 项目架构
+[![GitHub Stars](https://img.shields.io/github/stars/Cheeses233/MinecraftParticleImageGenerator?style=flat-square)](https://github.com/Cheeses233/MinecraftParticleImageGenerator/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/Cheeses233/MinecraftParticleImageGenerator?style=flat-square)](https://github.com/Cheeses233/MinecraftParticleImageGenerator/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/Cheeses233/MinecraftParticleImageGenerator?style=flat-square)](https://github.com/Cheeses233/MinecraftParticleImageGenerator/issues)
+[![GitHub Releases](https://img.shields.io/github/v/release/Cheeses233/MinecraftParticleImageGenerator?style=flat-square)](https://github.com/Cheeses233/MinecraftParticleImageGenerator/releases)
 
-```text
-ParticleGenerator/
-├── main.py                         # QApplication 入口
-├── app_info.py                     # 软件名称和版本号
-├── build.py                        # 自动生成图标并构建独立 EXE
-├── ui/
-│   ├── main_window.py              # 图片导入、参数设置和导出界面
-│   └── preview.py                  # 独立图片预览和粒子模拟组件
-├── core/
-│   ├── image_parser.py             # PNG/GIF/APNG 读取、缩放和透明像素过滤
-│   ├── particle_model.py           # local-space 粒子和 Pivot 数据模型
-│   ├── transform.py                # 缩放、旋转、执行位置偏移流水线
-│   ├── rotation.py                 # Euler 旋转数学
-│   ├── coordinate_system.py        # 世界/执行者/玩家朝向坐标转换
-│   ├── renderer.py                 # 模型到 Minecraft 函数命令的渲染
-│   ├── particle_generator.py       # 兼容旧调用的模型生成入口
-│   ├── datapack_builder.py         # pack.mcmeta、函数文件和 ZIP
-│   ├── performance.py              # 低/中/高分辨率和资源预算
-│   └── prediction.py               # 命令数、文件大小和执行风险预测
-│   ├── app_config.py               # AppData 用户配置
-│   ├── app_logging.py              # 轮转错误日志
-│   └── resource_paths.py           # 源码/打包资源路径检查
-├── version/
-│   ├── base.py                     # 版本适配器接口
-│   ├── registry.py                 # 支持版本注册表
-│   ├── mc1204.py                   # 1.20.4 命令语法及元数据
-│   ├── mc1205.py                   # 1.20.5/1.20.6 适配器
-│   └── mc121x.py                   # 1.21.x 适配器
-├── minecraft/
-│   ├── mc1204_renderer.py          # 1.20.4 粒子语法
-│   └── mc1205_renderer.py          # 1.20.5+ 粒子语法
-├── editor/
-│   ├── viewport.py                 # 可旋转/平移/缩放的 3D 模型视图
-│   ├── camera.py                   # 轨道相机
-│   └── gizmo.py                    # XYZ 坐标 Gizmo
-├── resources/
-│   └── app_icon.ico                # 构建脚本生成并嵌入的程序图标
-├── build/
-│   └── ParticleGenerator.spec      # PyInstaller 单文件配置
-└── requirements.txt
+**A Minecraft Java Edition particle image datapack generator.**
+
+Convert PNG, GIF, and APNG images into Minecraft Java Edition Datapack ZIP files.
+
+The application is built as a Windows desktop application using **PySide6**.  
+Image parsing, particle simulation, performance presets, risk prediction, Minecraft version adapters, and Datapack generation are separated into independent modules.
+
+If you encounter any problems, please submit an Issue!
+
+---
+
+## 🔗 Project Links
+
+| Resource | Link |
+|-|-|
+| ⭐ Star this project | https://github.com/Cheeses233/MinecraftParticleImageGenerator |
+| 🍴 Fork this project | https://github.com/Cheeses233/MinecraftParticleImageGenerator/fork |
+| 🐛 Report an Issue | https://github.com/Cheeses233/MinecraftParticleImageGenerator/issues |
+| 📦 Releases | https://github.com/Cheeses233/MinecraftParticleImageGenerator/releases |
+
+---
+
+# ✨ Features
+
+## Image to Minecraft Particle Model
+
+The processing pipeline:
+
 ```
 
-处理过程为：`图片 → ParsedImage → ParticleModel（局部坐标）→ 可视化编辑 → Transform → MinecraftRenderer → DatapackBuilder → ZIP`。图片左下角是默认 Pivot，向右为 +X、向上为 +Y。模型本身不保存 Minecraft 命令；只有预测/导出时才由版本渲染器生成函数文本。添加新版本时，在 `version/` 注册元数据适配器，并在 `minecraft/` 注册对应命令渲染器。
+Image
+↓
+ParsedImage
+↓
+ParticleModel (Local Space)
+↓
+Visual Editing
+↓
+Transform
+↓
+Minecraft Renderer
+↓
+Datapack Builder
+↓
+ZIP Package
 
-## 本地运行
+```
 
-普通用户直接运行 `build\dist\ParticleGenerator.exe`，无需安装 Python。开发者仅在构建机器上需要 Windows 10/11 和 Python 3.10 或更新版本：
+Unlike traditional pixel-to-command converters, this project uses a **particle model workflow**.
+
+The particle model itself does not store Minecraft commands.
+
+Commands are generated only during export through version-specific renderers.
+
+---
+
+# 🏗️ Project Architecture
+
+```
+
+ParticleGenerator/
+├── main.py                         # QApplication entry point
+├── app_info.py                     # Application name and version
+├── build.py                        # Generate icon and build standalone EXE
+│
+├── ui/
+│   ├── main_window.py              # Image import, settings and export UI
+│   └── preview.py                  # Image preview and particle simulation
+│
+├── core/
+│   ├── image_parser.py             # PNG/GIF/APNG loading and processing
+│   ├── particle_model.py           # Local-space particle model and Pivot system
+│   ├── transform.py                # Scale, rotation and position pipeline
+│   ├── rotation.py                 # Euler rotation mathematics
+│   ├── coordinate_system.py        # World/executor/player coordinate conversion
+│   ├── renderer.py                 # Particle model renderer
+│   ├── particle_generator.py       # Legacy-compatible generation entry
+│   ├── datapack_builder.py         # Datapack and ZIP generation
+│   ├── performance.py              # Performance presets and budgets
+│   ├── prediction.py               # Command/file size prediction
+│   ├── app_config.py               # User configuration
+│   ├── app_logging.py              # Rotating application logs
+│   └── resource_paths.py           # Resource path handling
+│
+├── version/
+│   ├── base.py                     # Version adapter interface
+│   ├── registry.py                 # Version registry
+│   ├── mc1204.py                   # Minecraft 1.20.4 adapter
+│   ├── mc1205.py                   # Minecraft 1.20.5/1.20.6 adapter
+│   └── mc121x.py                   # Minecraft 1.21.x adapter
+│
+├── minecraft/
+│   ├── mc1204_renderer.py          # 1.20.4 particle syntax
+│   └── mc1205_renderer.py          # 1.20.5+ particle syntax
+│
+├── editor/
+│   ├── viewport.py                 # 3D particle model viewport
+│   ├── camera.py                   # Orbit camera
+│   └── gizmo.py                    # XYZ transformation gizmo
+│
+├── resources/
+│   └── app_icon.ico
+│
+├── build/
+│   └── ParticleGenerator.spec
+│
+└── requirements.txt
+
+```
+
+---
+
+# 🎨 Particle Model System
+
+## Local Coordinate System
+
+All particles are stored using local coordinates.
+
+The model does **not** store Minecraft world coordinates.
+
+Default coordinate system:
+
+```
+
+```
+      +Y
+
+      ↑
+```
+
+-X  ←   Pivot   → +X
+
+```
+      +Z
+```
+
+```
+
+The default Pivot is:
+
+```
+
+Bottom-left corner of the image
+
+```
+
+The bottom-left pixel is always treated as the origin point.
+
+---
+
+# 🧩 Visual Editing System
+
+The editor works similarly to BlockBench.
+
+Supported editing:
+
+## Transform
+
+- Position offset
+- X/Y/Z rotation
+- X/Y/Z scale
+
+## Particle Properties
+
+- Particle size
+- Alpha
+- Color
+- Pivot position
+- Facing mode
+
+## 3D Viewport
+
+Supports:
+
+- Left mouse button: rotate camera
+- Right/middle mouse button: move camera
+- Mouse wheel: zoom
+
+Displays:
+
+- Grid
+- XYZ axis
+- Pivot point
+- Particle model preview
+
+---
+
+# 🧭 Minecraft Coordinate Conversion
+
+The transformation pipeline:
+
+```
+
+Particle Local Space
+
+↓
+
+Pivot Transform
+
+↓
+
+Scale
+
+↓
+
+Euler Rotation
+
+↓
+
+Executor Position
+
+↓
+
+Minecraft World Position
+
+````
+
+This allows:
+
+- Moving the model
+- Rotating the model
+- Scaling the model
+- Following executor direction
+
+---
+
+# 👁️ Facing Modes
+
+Supported modes:
+
+## Fixed World Direction
+
+The particle image keeps the same world orientation.
+
+---
+
+## Executor Direction
+
+The model follows the function executor's rotation.
+
+Example:
+
+```mcfunction
+execute as @p at @s run function namespace:name
+````
+
+---
+
+## Player View Direction
+
+The model follows the nearest player's viewing direction.
+
+Implemented using:
+
+```mcfunction
+execute rotated as @p
+```
+
+---
+
+# 📦 Datapack Output
+
+Generated datapack structure:
+
+```
+ParticlePack
+│
+├── pack.mcmeta
+│
+└── data
+    └── namespace
+        └── function
+            ├── load.mcfunction
+            └── draw.mcfunction
+```
+
+All supported versions use:
+
+```
+data/<namespace>/function/
+```
+
+---
+
+# 🎮 Supported Minecraft Versions
+
+Currently supported:
+
+* Minecraft Java Edition 1.20.4
+* Minecraft Java Edition 1.20.5
+* Minecraft Java Edition 1.20.6
+* Minecraft Java Edition 1.21.x
+* Minecraft Java Edition 1.21.11 registered versions
+
+Version support is handled through adapters.
+
+Adding a new Minecraft version only requires:
+
+```
+version/
+minecraft/
+```
+
+adapter implementation.
+
+---
+
+# ✨ Supported Particles
+
+Current particles:
+
+* `minecraft:dust`
+* `minecraft:flame`
+* `minecraft:cloud`
+* `minecraft:end_rod`
+
+Notes:
+
+* Transparent pixels are ignored.
+* Dust supports RGB colors.
+* Non-Dust particles cannot display per-pixel RGB colors.
+* Dust size range:
+
+```
+0.01 - 4
+```
+
+---
+
+# 🎞️ Animation Support
+
+Supported:
+
+* GIF
+* APNG
+
+Features:
+
+* Frame extraction
+* Frame timing
+* Loop playback
+* Animation function generation
+
+Start animation:
+
+```mcfunction
+/function <namespace>:<name>/animation/start
+```
+
+Stop animation:
+
+```mcfunction
+/function <namespace>:<name>/animation/stop
+```
+
+---
+
+# ⚙️ Performance Optimization
+
+Three performance modes:
+
+## Low Performance Mode
+
+* Maximum resolution: 128×128
+* Pixel merging enabled
+
+Recommended for servers.
+
+---
+
+## Balanced Mode
+
+* Maximum 500,000 pixels
+
+Default mode.
+
+---
+
+## High Quality Mode
+
+* Maximum 1,000,000 pixels
+
+Maximum visual quality.
+
+---
+
+# 📊 Risk Prediction
+
+Before exporting, the program estimates:
+
+* Particle count
+* Function file size
+* Execution risk
+
+High-risk exports require confirmation.
+
+The prediction is based on:
+
+* Command count
+* Generated file size
+* Frame complexity
+
+---
+
+# 🖥️ Running Locally
+
+## Requirements
+
+Developers need:
+
+* Windows 10/11
+* Python 3.10+
+
+Create environment:
 
 ```powershell
 py -3 -m venv .venv
+
 .\.venv\Scripts\Activate.ps1
+
 python -m pip install -r requirements.txt
+
 python main.py
 ```
 
-## 一键打包独立 EXE
+---
 
-PyInstaller 不支持从其他操作系统交叉构建 Windows EXE。在 Windows 构建机完成依赖安装后执行：
+# 📦 Build Standalone EXE
+
+Windows EXE must be built on Windows.
+
+Run:
 
 ```powershell
 python build.py
 ```
 
-脚本会自动生成应用图标，再按 PyInstaller spec 构建单文件 GUI 程序；软件版本为 **1.3.0**。生成物位于 `build\dist\ParticleGenerator.exe`。PySide6、Pillow 和图标会随程序打包，目标电脑无需安装 Python 或其他运行环境。第一次启动可能需要稍候解压运行时文件。
+The build script will:
 
-用户配置保存在 `%APPDATA%\Minecraft Particle Image Generator\config.json`；滚动日志保存在 `%LOCALAPPDATA%\Minecraft Particle Image Generator\logs\application.log`。
+* Generate application icon
+* Run PyInstaller
+* Package dependencies
+* Create standalone GUI application
 
-## 当前支持范围
+Output:
 
-- Datapack：Minecraft Java Edition 1.20.4、1.20.5、1.20.6，以及 1.21 至 1.21.11 的已登记版本；所有支持版本均使用 `function/` 目录，1.21.9 及以上使用 `min_format`/`max_format` 元数据。
-- 粒子：`minecraft:dust`、`minecraft:flame`、`minecraft:cloud`、`minecraft:end_rod`
-- 透明度为 0 的像素会忽略；非零 Alpha 均作为可见像素。非 Dust 粒子不具备逐像素 RGB 颜色；Dust 大小范围为 0.01–4。
-- 所有支持版本的函数路径均为 `data/<namespace>/function/<name>.mcfunction`。
-- 3D 视口支持左键旋转、右键/中键平移和滚轮缩放，并显示网格、XYZ 轴与 Pivot；变换、粒子大小、Alpha、Pivot 和朝向模式均可在界面编辑。
-- 朝向模式包括固定世界方向、继承函数执行者方向、继承最近玩家视角。前两种无需 `with block`；模型位置使用执行上下文的相对坐标，视角模式通过 `execute rotated as @p` 覆盖方向。
-- 局部点经过 Pivot、XYZ 缩放、Euler XYZ 旋转和执行位置偏移后，渲染为 Minecraft `~` 或 `^` 坐标；普通函数调用位置就是默认左下角 Pivot 的锚点。
-- 动画播放使用临时实体标签保持启动者执行位置/朝向；从玩家执行 start/stop 函数。Dust 等粒子命令不支持逐粒子 Alpha 或 Sprite 旋转，Alpha 用于模型预览与隐藏完全透明粒子。
-- 对静态模型，执行 `/function <namespace>:<name>` 时，当前函数执行位置就是所选 Pivot 锚点；左下角 Pivot 是默认值。需要明确指定玩家执行上下文时，可用 `/execute as @p at @s run function <namespace>:<name>`。不要使用 `with block` 定位；它只用于给宏函数传方块 NBT 数据。
-- 低性能模式将图像缩至最多 128×128 并使用区域像素合并；中性能模式最多 500,000 像素；高性能模式最多 1,000,000 像素。动画最多 120 帧，并设置总像素预算以控制内存。
-- 动画帧自动按 GIF/APNG 时长循环。生成后运行 `/function <namespace>:<name>/animation/start` 开始播放，运行 `/function <namespace>:<name>/animation/stop` 停止播放。
-- 执行风险以单帧命令数和函数文本大小估算；高风险导出会要求确认。粒子模拟是用于布局/色彩预览的近似渲染，并非游戏客户端截图。
+```
+build\dist\ParticleGenerator.exe
+```
+
+The final application does not require:
+
+* Python
+* Python packages
+* Additional runtime installation
+
+---
+
+# 📁 User Data
+
+Configuration:
+
+```
+%APPDATA%\Minecraft Particle Image Generator\config.json
+```
+
+Logs:
+
+```
+%LOCALAPPDATA%\Minecraft Particle Image Generator\logs\application.log
+```
+
+---
+
+# 🗺️ Roadmap
+
+## v1.4.x
+
+Planned:
+
+* More particle types
+* Improved optimization
+* Better preview rendering
+
+---
+
+## Future Versions
+
+Planned:
+
+* Advanced BlockBench-style editor
+* More animation tools
+* Particle effect templates
+* Skill effect creation
+* RPG-style particle systems
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome!
+
+You can:
+
+* Submit Issues
+* Create Forks
+* Submit Pull Requests
+* Share suggestions
+
+---
+
+# 📜 License
+
+License: TBD
+
+---
+
+# ❤️ Acknowledgements
+
+Thanks to:
+
+* Minecraft Datapack creators
+* Particle effect creators
+* Test users
+* Everyone who provides feedback
+
+Create images.
+Bring them into Minecraft.
+
+这样更符合国际开源项目习惯。
