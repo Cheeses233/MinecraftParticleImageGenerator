@@ -1,0 +1,56 @@
+name: Bug反馈
+description: 提交一个程序错误、异常或崩溃问题
+title: "[Bug] "
+labels:
+  - "Bug"
+body:
+  - type: input
+    id: title
+    attributes:
+      label: 标题
+      description: 简单描述你的问题
+      placeholder: 例如：启动服务器时出现崩溃
+    validations:
+      required: true
+
+  - type: textarea
+    id: content
+    attributes:
+      label: 内容
+      description: 请详细描述遇到的问题
+      placeholder: |
+        发生了什么？
+        预期结果是什么？
+        实际结果是什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 如何复现？
+      description: 请提供复现步骤
+      placeholder: |
+        1. 打开XXX
+        2. 执行XXX
+        3. 出现错误XXX
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 请填写运行环境
+      placeholder: |
+        系统：
+        软件版本：
+        Minecraft版本：
+        Mod列表：
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 错误日志
+      description: 如果有，请粘贴完整错误日志
+      render: shell
