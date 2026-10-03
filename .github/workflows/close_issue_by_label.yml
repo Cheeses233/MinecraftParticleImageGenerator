@@ -8,74 +8,99 @@ on:
 permissions:
   issues: write
 
+
 jobs:
   close_issue:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 判断Label并关闭Issue
+      - name: 自动处理Issue
         uses: actions/github-script@v7
         with:
           script: |
-            const label = context.payload.label.name;
-            const issue = context.issue;
 
-            let comment = "";
+            const label = context.payload.label.name;
+
+            let comment = null;
+
 
             if (label === "已完成") {
+
               comment = `
-## ✅ Issue 已完成
+  ## ✅ Issue 已完成
 
 感谢你的反馈！
 
-该问题/建议已经完成处理，我们将在后续版本中发布相关修复或内容更新。
+该问题已经完成处理，我们会在后续版本中发布相关修复或更新。
 
 感谢你对项目的支持！
-              `;
+`;
+
             }
 
-            else if (label === "不予处理") {
+
+            if (label === "不予处理") {
+
               comment = `
 ## ❌ Issue 不予处理
 
 感谢你的反馈。
 
-经过评估，该 Issue 所描述的问题或建议目前与项目方向不符，因此我们暂不进行处理。
-
-如果未来项目方向发生调整，我们可能会重新考虑该内容。
+经过评估，该内容暂时不符合当前项目规划，因此不会进行处理。
 
 感谢理解！
-              `;
+`;
+
             }
 
-            else if (label === "无法修复") {
+
+            if (label === "无法修复") {
+
               comment = `
 ## ❌ Issue 无法修复
 
 感谢你的反馈。
 
-经过分析，该问题目前由于技术限制、依赖限制或其他原因，暂时无法进行修复。
+由于技术限制、依赖限制或实现成本等原因，该问题目前无法修复。
 
-如果未来出现新的解决方案，我们可能会重新评估该问题。
+如果未来条件允许，我们会重新评估。
 
-感谢你的理解与支持！
-              `;
+感谢支持！
+`;
+
             }
 
-            else {
+
+            if (!comment) {
               return;
             }
 
 
             // 添加评论
             await github.rest.issues.createComment({
-              ...issue,
+
+              owner: context.repo.owner,
+
+              repo: context.repo.repo,
+
+              issue_number: context.issue.number,
+
               body: comment
+
             });
 
 
-            // 关闭Issue
+
+            // 关闭 Issue
+
             await github.rest.issues.update({
-              ...issue,
+
+              owner: context.repo.owner,
+
+              repo: context.repo.repo,
+
+              issue_number: context.issue.number,
+
               state: "closed"
+
             });
